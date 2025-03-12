@@ -39,13 +39,13 @@ end
 get_fsalfirstlast(cache::ExplicitTaylor2Cache, u) = (cache.k1, cache.k1)
 
 @cache struct ExplicitTaylorCache{
-    P, uType, rateType, uNoUnitsType, StageLimiter, StepLimiter,
+    P, jetType, uType, taylorType, uNoUnitsType, StageLimiter, StepLimiter,
     Thread} <: OrdinaryDiffEqMutableCache
     order::Val{P}
+    jet::jetType
     u::uType
     uprev::uType
-    us::NTuple{P, uType}
-    ks::NTuple{P, rateType}
+    utaylor::taylorType
     utilde::uType
     tmp::uType
     atmp::uNoUnitsType
@@ -58,15 +58,13 @@ function alg_cache(alg::ExplicitTaylor{P}, u, rate_prototype, ::Type{uEltypeNoUn
         ::Type{uBottomEltypeNoUnits}, ::Type{tTypeNoUnits}, uprev, uprev2, f, t,
         dt, reltol, p, calck,
         ::Val{true}) where {P, uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
-    # ks: normalized derivatives for f, starting from 0
-    ks = ntuple(i -> zero(rate_prototype), Val(P))
-    # us: normalized derivatives for u, starting from 1
-    us = ntuple(i -> zero(u), Val(P))
+    # jet_oop, jet_iip = build_jet(f, p, Val(P), length(u))
+    utaylor = TaylorDiff.make_seed(u, zero(u), Val(P))
     utilde = zero(u)
     atmp = similar(u, uEltypeNoUnits)
     recursivefill!(atmp, false)
     tmp = zero(u)
-    ExplicitTaylorCache(Val(P), u, uprev, us, ks, utilde, tmp, atmp,alg.stage_limiter!, alg.step_limiter!, alg.thread)
+    ExplicitTaylorCache(Val(P), alg.stage_limiter!, u, uprev, utaylor, utilde, tmp, atmp, alg.stage_limiter!, alg.step_limiter!, alg.thread)
 end
 
 struct ExplicitTaylorConstantCache{P} <: OrdinaryDiffEqConstantCache end
@@ -78,4 +76,4 @@ function alg_cache(alg::ExplicitTaylor{P}, u, rate_prototype, ::Type{uEltypeNoUn
 end
 
 # FSAL currently not used, providing dummy implementation to satisfy the interface
-get_fsalfirstlast(cache::ExplicitTaylorCache, u) = (cache.ks[1], cache.ks[1])
+get_fsalfirstlast(cache::ExplicitTaylorCache, u) = (cache.u, cache.u)

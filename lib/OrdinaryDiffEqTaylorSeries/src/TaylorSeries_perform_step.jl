@@ -84,36 +84,22 @@ function initialize!(integrator, cache::ExplicitTaylorCache{P}) where P
     integrator.kshortsize = P
     resize!(integrator.k, P)
     # Setup k pointers
-    for (i, k) in enumerate(cache.ks)
-        integrator.k[i] = k
+    for i in 1:P
+        integrator.k[i] = get_coefficient(cache.utaylor, i)
     end
     return nothing
 end
 
 @muladd function perform_step!(integrator, cache::ExplicitTaylorCache{P}, repeat_step = false) where P
     @unpack t, dt, uprev, u, f, p = integrator
-    @unpack ks, us, utilde, tmp, atmp, thread = cache
+    @unpack jet, utaylor, utilde, tmp, atmp, thread = cache
 
-    # The following code is written to be fully non-allocating
-    f(ks[1], uprev, p, t)
-    @.. us[1] .= ks[1]
-    @.. u = uprev + dt * us[1]
-    dti = dt
-    for i in 1:P-1
-        ui = make_taylor(uprev, us[1:i]...)
-        ti = TaylorScalar{i}(t, one(t))
-        outi = make_taylor(ks[1:i+1]...)
-        f(outi, ui, p, ti)
-        us[i + 1] .= ks[i + 1] / (i + 1)
-        dti *= dt
-        @.. u += dti * us[i + 1]
+    jet(utaylor, uprev, t)
+    for i in eachindex(utaylor)
+        u[i] = @inline evaluate_polynomial(utaylor[i], dt)
     end
     if integrator.opts.adaptive
-        unext = make_taylor(uprev, us...)
-        tnext = TaylorScalar{P}(t, one(t))
-        outnext = make_taylor(utilde, ks...)
-        f(outnext, unext, p, tnext)
-        @.. broadcast=false thread=thread utilde = utilde / (P + 1) * dt^(P + 1)
+        @.. broadcast=false thread=thread utilde = TaylorDiff.get_coefficient(utaylor, P) * dt^P
         calculate_residuals!(atmp, utilde, uprev, u, integrator.opts.abstol,
             integrator.opts.reltol, integrator.opts.internalnorm, t)
         integrator.EEst = integrator.opts.internalnorm(atmp, t)
