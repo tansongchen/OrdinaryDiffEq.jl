@@ -2,7 +2,9 @@ module OrdinaryDiffEqTaylorSeries
 
 import OrdinaryDiffEqCore: alg_order, get_current_adaptive_order, get_current_alg_order,
                            alg_stability_size, explicit_rk_docstring,
-                           OrdinaryDiffEqAdaptiveAlgorithm, OrdinaryDiffEqMutableCache,
+                           OrdinaryDiffEqAdaptiveAlgorithm,
+                           OrdinaryDiffEqNewtonAdaptiveAlgorithm,
+                           OrdinaryDiffEqNewtonAlgorithm,OrdinaryDiffEqMutableCache,
                            alg_cache,
                            OrdinaryDiffEqConstantCache, @fold, trivial_limiter!,
                            step_accept_controller!,
@@ -15,6 +17,11 @@ import OrdinaryDiffEqCore: alg_order, get_current_adaptive_order, get_current_al
                            CompositeAlgorithm, _ode_addsteps!, copyat_or_push!,
                            AutoAlgSwitch, get_fsalfirstlast,
                            full_cache, DerivativeOrderNotPossibleError
+using OrdinaryDiffEqDifferentiation: UJacobianWrapper, dolinsolve
+using OrdinaryDiffEqNonlinearSolve: du_alias_or_new, markfirststage!, build_nlsolver,
+                                    nlsolve!, nlsolvefail, isnewton, get_W, set_new_W!,
+                                    NLNewton, COEFFICIENT_MULTISTEP
+import ADTypes: AutoForwardDiff
 import Static: False
 import MuladdMacro: @muladd
 import FastBroadcast: @..
@@ -59,6 +66,6 @@ PrecompileTools.@compile_workload begin
     solver_list = nothing
 end
 
-export ExplicitTaylor2, ExplicitTaylor, ExplicitTaylorAdaptiveOrder
+export ExplicitTaylor2, ExplicitTaylor, ExplicitTaylorAdaptiveOrder, ImplicitTaylor2
 
 end

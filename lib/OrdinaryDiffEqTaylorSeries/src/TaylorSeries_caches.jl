@@ -150,3 +150,17 @@ function alg_cache(
     ExplicitTaylorAdaptiveOrderConstantCache(
         alg.min_order, alg.max_order, current_order, jets)
 end
+
+struct ImplicitTaylor2ConstantCache{N} <: OrdinaryDiffEqConstantCache
+    nlsolver::N
+end
+
+function alg_cache(alg::ImplicitTaylor2, u, rate_prototype, ::Type{uEltypeNoUnits},
+        ::Type{uBottomEltypeNoUnits},
+        ::Type{tTypeNoUnits}, uprev, uprev2, f, t, dt, reltol, p, calck,
+        ::Val{false}) where {uEltypeNoUnits, uBottomEltypeNoUnits, tTypeNoUnits}
+    γ, c = 1, 1
+    nlsolver = build_nlsolver(alg, u, uprev, p, t, dt, f, rate_prototype, uEltypeNoUnits,
+        uBottomEltypeNoUnits, tTypeNoUnits, γ, c, Val(false))
+    ImplicitTaylor2ConstantCache(nlsolver)
+end

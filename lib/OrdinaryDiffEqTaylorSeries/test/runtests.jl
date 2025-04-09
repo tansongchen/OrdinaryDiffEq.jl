@@ -33,3 +33,8 @@ end
     sol = solve(prob_ode_linear, ExplicitTaylorAdaptiveOrder())
     @test length(sol) < 20
 end
+
+@testset "Implicit Taylor Tests" begin
+    sol = solve(prob_ode_linear, ImplicitTaylor2())
+    @test length(sol) < 100
+end
