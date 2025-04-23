@@ -35,6 +35,15 @@ end
 end
 
 @testset "Implicit Taylor Tests" begin
-    sol = solve(prob_ode_linear, ImplicitTaylor2())
+    sol = solve(prob_ode_linear, ImplicitTaylor2(); dt=0.1)
     @test length(sol) < 100
+end
+
+# TODO: This currently fails because the 2nd order method is not implemented. Make this pass.
+@testset "Taylor2 Convergence Tests" begin
+    # Test convergence
+    dts = 2. .^ (-8:-4)
+    testTol = 0.2
+    sim = test_convergence(dts, prob_ode_linear, ImplicitTaylor2())
+    @test sim.𝒪est[:final]≈2 atol=testTol
 end
